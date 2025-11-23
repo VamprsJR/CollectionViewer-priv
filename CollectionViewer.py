@@ -106,4 +106,4 @@ async def mostrar_horarios(ctx):
     await ctx.send(mensaje)
 
 # La línea final de ejecución ahora lee el token de una variable de entorno
-bot.run(os.getenv('MTQ0MjIzMzUxNTE4NDc1NDg0MA.GSKliO.aimof9V_DjpaNFL2vC2FHOH9C111uZTb6p-9J4'))
+bot.run(os.getenv('DISCORD_TOKEN'))
