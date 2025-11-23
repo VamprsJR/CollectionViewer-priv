@@ -1,3 +1,2 @@
-Plaintext
 discord
 python-dotenv
