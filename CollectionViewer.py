@@ -3,8 +3,9 @@ from dotenv import load_dotenv
 import discord
 from discord.ext import commands
 # Importamos 'timezone' para manejo de UTC
-from datetime import datetime, timedelta, timezone 
+from datetime import datetime, timedelta, timezone
 import time
+
 # Asegúrate de que esta línea esté al inicio, después de los imports:
 load_dotenv()
 
@@ -12,25 +13,15 @@ load_dotenv()
 intents = discord.Intents.default()
 intents.message_content = True 
 bot = commands.Bot(command_prefix='!', intents=intents)
+
 # ----------------------------------------------------
-# VARIABLES DEL CICLO
+# VARIABLES DEL CICLO (AJUSTADO)
 # ----------------------------------------------------
-# La duración de 1 ciclo individual (20 minutos) se mantiene para referencia, pero no se usa para el cálculo total ajustado
 INTERVALO_ITEM_MINUTOS = 20
 CICLO_TOTAL_ITEMS = 26
-# NUEVO AJUSTE: Usamos timedelta para la duración exacta del ciclo total (505 minutos y 3 segundos).
-DURACION_CICLO_TOTAL = timedelta(hours=8, minutes=25, seconds=3)
-# Almacenamiento: El tiempo base siempre se guarda en UTC (Universal)
-ULTIMO_HORARIO_REGISTRO_UTC = None
-# FULL_CYCLE_MINUTES = INTERVALO_ITEM_MINUTOS * CICLO_TOTAL_ITEMS # 520 minutos
-# NUEVO AJUSTE: Usamos timedelta para la duración exacta del ciclo total (505 minutos y 3 segundos).
-# Reemplazamos la variable FULL_CYCLE_MINUTES por la timedelta ajustada:
-DURACION_CICLO_TOTAL = timedelta(hours=8, minutes=25, seconds=3)
-# Almacenamiento: El tiempo base siempre se guarda en UTC (Universal)
-ULTIMO_HORARIO_REGISTRO_UTC = None
 
-# ... (resto del código)
-# ----------------------------------------------------
+# DURACIÓN AJUSTADA: 8h, 25m, 3s (505 minutos y 3 segundos) para corregir el desfase.
+DURACION_CICLO_TOTAL = timedelta(hours=8, minutes=25, seconds=3)
 
 # Almacenamiento: El tiempo base siempre se guarda en UTC (Universal)
 ULTIMO_HORARIO_REGISTRO_UTC = None
@@ -41,7 +32,7 @@ async def on_ready():
     await bot.change_presence(activity=discord.Game(name="Rastreando Ciclos Globales"))
 
 # ----------------------------------------------------
-# COMANDO CORREGIDO: Establece el tiempo de partida
+# COMANDO: Establece el tiempo de partida
 # ----------------------------------------------------
 @bot.command(name='set_horario', help='Establece el horario del ÚLTIMO reset/aparición. Formato: HH:MM.')
 async def set_horario(ctx, hora_str: str):
@@ -56,7 +47,7 @@ async def set_horario(ctx, hora_str: str):
 
         # Si ya pasó hoy, asumimos que fue ayer
         if registro_local > ahora_local:
-             registro_local -= timedelta(days=1)
+            registro_local -= timedelta(days=1)
         
         # 2. Convertimos el tiempo ingenuo a un tiempo consciente (aware) de la zona horaria del sistema,
         # y luego lo convertimos a UTC.
@@ -70,38 +61,54 @@ async def set_horario(ctx, hora_str: str):
         
     except Exception as e:
         await ctx.send(f"❌ Error al establecer el horario. Asegúrate de usar HH:MM. Error: {e}")
+
 # ----------------------------------------------------
-# COMANDO DE VISUALIZACIÓN (AJUSTADO)
+# COMANDO DE VISUALIZACIÓN (CON AJUSTE DE TIEMPO)
 # ----------------------------------------------------
 @bot.command(name='ver_horarios', help='Muestra las próximas 5 finalizaciones de los 26 ciclos en la hora local de cada usuario.')
 async def mostrar_horarios(ctx):
-  global ULTIMO_HORARIO_REGISTRO_UTC
- 
-  if ULTIMO_HORARIO_REGISTRO_UTC is None:
-    await ctx.send('El ciclo de partida no ha sido configurado globalmente. Usa `!set_horario`.')
-    return
+    global ULTIMO_HORARIO_REGISTRO_UTC
+    
+    if ULTIMO_HORARIO_REGISTRO_UTC is None:
+        await ctx.send('El ciclo de partida no ha sido configurado globalmente. Usa `!set_horario`.')
+        return
 
-  # Se usa UTC para todos los cálculos
-  # ¡CAMBIO AQUÍ! Usa DURACION_CICLO_TOTAL
-  proximo_fin_de_ciclo_utc = ULTIMO_HORARIO_REGISTRO_UTC + DURACION_CICLO_TOTAL 
-  ahora_utc = datetime.now(timezone.utc)
+    # Se usa UTC para todos los cálculos
+    # 1. Primera vez que se usa la duración ajustada
+    proximo_fin_de_ciclo_utc = ULTIMO_HORARIO_REGISTRO_UTC + DURACION_CICLO_TOTAL 
+    ahora_utc = datetime.now(timezone.utc)
 
-  # Saltamos hacia adelante en bloques UTC
-  while proximo_fin_de_ciclo_utc <= ahora_utc:
-    # ¡CAMBIO AQUÍ! Usa DURACION_CICLO_TOTAL
-    proximo_fin_de_ciclo_utc += DURACION_CICLO_TOTAL 
+    # Saltamos hacia adelante en bloques UTC
+    while proximo_fin_de_ciclo_utc <= ahora_utc:
+        # 2. Se usa la duración ajustada para saltar ciclos
+        proximo_fin_de_ciclo_utc += DURACION_CICLO_TOTAL 
 
-  mensaje = f"**🌍 Próximas 5 Finalizaciones de Ciclo (Hora Local para ti):**\n"
-  # ... (resto de la función se mantiene igual)
-  # ...
-    # Avanzamos al siguiente ciclo completo de la DURACIÓN AJUSTADA
-    # ¡CAMBIO AQUÍ! Usa DURACION_CICLO_TOTAL
-    proximo_fin_de_ciclo_utc += DURACION_CICLO_TOTAL 
+    mensaje = f"**🌍 Próximas 5 Finalizaciones de Ciclo (Hora Local para ti):**\n"
+    
+    # Generamos los próximos 5 horarios
+    for i in range(1, 6): 
+        
+        # Convertir el datetime UTC a UNIX Timestamp (necesario para Discord)
+        timestamp = int(proximo_fin_de_ciclo_utc.timestamp()) 
+        # Formato de Discord: <t:timestamp:f> (muestra fecha y hora local)
+        discord_timestamp = f'<t:{timestamp}:f>'
+        
+        # Calcular tiempo restante
+        tiempo_restante = proximo_fin_de_ciclo_utc - ahora_utc
+        
+        total_segundos = int(tiempo_restante.total_seconds())
+        horas = total_segundos // 3600
+        minutos = (total_segundos % 3600) // 60
+        segundos = total_segundos % 60
+        
+        tiempo_restante_str = f"Quedan: **{horas}h {minutos}m {segundos}s**"
+        
+        mensaje += f"Ciclo #{i}: {discord_timestamp} ({tiempo_restante_str})\n"
+        
+        # 3. Se usa la duración ajustada para el siguiente ciclo en el bucle
+        proximo_fin_de_ciclo_utc += DURACION_CICLO_TOTAL 
+        
+    await ctx.send(mensaje)
 
-  await ctx.send(mensaje)
 # La línea final de ejecución ahora lee el token de una variable de entorno
 bot.run(os.getenv('DISCORD_TOKEN'))
-
-
-
-
