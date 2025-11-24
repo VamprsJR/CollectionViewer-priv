@@ -75,32 +75,33 @@ async def set_horario(ctx, hora_str: str):
 # ----------------------------------------------------
 @bot.command(name='ver_horarios', help='Muestra las próximas 5 finalizaciones de los 26 ciclos en la hora local de cada usuario.')
 async def mostrar_horarios(ctx):
-    global ULTIMO_HORARIO_REGISTRO_UTC
-    
-    if ULTIMO_HORARIO_REGISTRO_UTC is None:
-        await ctx.send('El ciclo de partida no ha sido configurado globalmente. Usa `!set_horario`.')
-        return
+  global ULTIMO_HORARIO_REGISTRO_UTC
+ 
+  if ULTIMO_HORARIO_REGISTRO_UTC is None:
+    await ctx.send('El ciclo de partida no ha sido configurado globalmente. Usa `!set_horario`.')
+    return
 
-    # Se usa UTC para todos los cálculos
-    # ¡CAMBIO AQUÍ! Usa DURACION_CICLO_TOTAL
-    proximo_fin_de_ciclo_utc = ULTIMO_HORARIO_REGISTRO_UTC + DURACION_CICLO_TOTAL 
-    ahora_utc = datetime.now(timezone.utc)
+  # Se usa UTC para todos los cálculos
+  # ¡CAMBIO AQUÍ! Usa DURACION_CICLO_TOTAL
+  proximo_fin_de_ciclo_utc = ULTIMO_HORARIO_REGISTRO_UTC + DURACION_CICLO_TOTAL 
+  ahora_utc = datetime.now(timezone.utc)
 
-    # Saltamos hacia adelante en bloques UTC
-    while proximo_fin_de_ciclo_utc <= ahora_utc:
-        # ¡CAMBIO AQUÍ! Usa DURACION_CICLO_TOTAL
-        proximo_fin_de_ciclo_utc += DURACION_CICLO_TOTAL 
+  # Saltamos hacia adelante en bloques UTC
+  while proximo_fin_de_ciclo_utc <= ahora_utc:
+    # ¡CAMBIO AQUÍ! Usa DURACION_CICLO_TOTAL
+    proximo_fin_de_ciclo_utc += DURACION_CICLO_TOTAL 
 
-    mensaje = f"**🌍 Próximas 5 Finalizaciones de Ciclo (Hora Local para ti):**\n"
-    # ... (resto de la función se mantiene igual)
-    # ...
-        # Avanzamos al siguiente ciclo completo de la DURACIÓN AJUSTADA
-        # ¡CAMBIO AQUÍ! Usa DURACION_CICLO_TOTAL
-        proximo_fin_de_ciclo_utc += DURACION_CICLO_TOTAL 
+  mensaje = f"**🌍 Próximas 5 Finalizaciones de Ciclo (Hora Local para ti):**\n"
+  # ... (resto de la función se mantiene igual)
+  # ...
+    # Avanzamos al siguiente ciclo completo de la DURACIÓN AJUSTADA
+    # ¡CAMBIO AQUÍ! Usa DURACION_CICLO_TOTAL
+    proximo_fin_de_ciclo_utc += DURACION_CICLO_TOTAL 
 
-    await ctx.send(mensaje)
+  await ctx.send(mensaje)
 # La línea final de ejecución ahora lee el token de una variable de entorno
 bot.run(os.getenv('DISCORD_TOKEN'))
+
 
 
 
